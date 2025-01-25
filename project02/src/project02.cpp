@@ -20,7 +20,7 @@ cy::Matrix4f perspective;
 cy::Matrix4f mv;
 
 float x_cam_angle; 
-float y_cam_angel; 
+float y_cam_angle; 
 float dist_cam; 
 
 int x_last_mouse;
@@ -37,7 +37,17 @@ int mouse_button;
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
 
+     printf("dist: %.2f\n", dist_cam);
+     printf("x_cam %.2f \n", x_cam_angle);
+     printf("y_cam %.2f \n", y_cam_angle);
+     printf("\n");
+
+    mvp = mvp * cy::Matrix4f::Translation(cy::Vec3f(0.0f, 0.0f, -dist_cam)) *
+                             cy::Matrix4f::RotationX(DEG2RAD(x_cam_angle)) *
+                             cy::Matrix4f::RotationY(DEG2RAD(y_cam_angle));
+
     prog.Bind(); 
+    prog["mvp"] = mvp;
     glBindVertexArray(teapot_vao);
     glDrawArrays(GL_POINTS, 0, mesh.NV());
 
@@ -50,8 +60,59 @@ void display() {
 }
 
 void idle() {
+    // glutPostRedisplay();
+}
+
+void myMouse(int button, int state, int x, int y) {
+    printf("click/release: ");
+
+    if (state == GLUT_DOWN) {
+        printf("click \n");
+        mouse_button = button; 
+        printf("button: %d \n", mouse_button);
+        x_last_mouse = x; 
+        y_last_mouse = y; 
+    }
+    else {
+        printf("release \n");
+        mouse_button = -1; 
+    }
+
+     printf("clicked-coords: %d, %d \n", x, y);
+
+}
+
+void myMouseMotion(int x, int y) {
+    printf("hold-move: ");
+    int x_change = x - x_last_mouse; 
+    int y_change = y - y_last_mouse; 
+
+    if (mouse_button == GLUT_LEFT_BUTTON) {
+        printf("left button \n");
+        x_cam_angle = x_change * 0.2f; 
+        y_cam_angle = y_change * 0.2f; 
+    }
+    else if (mouse_button == GLUT_RIGHT_BUTTON) {
+        printf("right button \n");
+        // dist_cam = y_change * 0.5f; 
+        dist_cam = y_change; 
+
+    }
+
+    printf("old-coords: %d, %d \n", x_last_mouse, y_last_mouse);
+    
+    printf("current-coords: %d, %d \n", x, y);
+    
+    printf("change-in-coords: %d, %d \n", x_change, y_change);
+
+
+    x_last_mouse = x; 
+    y_last_mouse = y; 
+
     glutPostRedisplay();
 }
+
+// void glutReshapeFunc
 
 void handleKeypress(unsigned char key, int x, int y) {
     switch (key) {
@@ -88,9 +149,10 @@ int main(int argc, char** argv) {
 
     // Interactive Initis
     x_cam_angle = 0.0f; 
-    y_cam_angel = 0.0f; 
-    dist_cam = 0.5f; 
-    int mouse_button = -1; 
+    y_cam_angle = 0.0f; 
+    dist_cam = 0.0f; 
+    mouse_button = -1; 
+    
 
     // Read obj file
     bool success = mesh.LoadFromFileObj("../assets/objs/teapot.obj");
@@ -152,6 +214,8 @@ int main(int argc, char** argv) {
     glutDisplayFunc(display);              
     glutKeyboardFunc(handleKeypress);
     glutIdleFunc(idle); 
+    glutMouseFunc(myMouse);
+    glutMotionFunc(myMouseMotion); 
 
     // OPENGL Inits
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
