@@ -6,6 +6,7 @@
 #include "../include/cyTriMesh.h"
 #include "../include/cyGL.h"
 #include "../include/cyVector.h"
+#include "../include/globals.h"
 #include "cmath"
 
 #define DEG2RAD(x) ((x) * 3.14159265359f / 180.0f)
@@ -17,31 +18,41 @@ cy::GLSLProgram prog;
 GLuint teapot_vao;
 GLuint buffer; 
 
-cy::TriMesh mesh; // Need it for mesh.nv
+// CLASSES TO MAKE
+// OBJ
+aa::Object obj; 
+aa::Camera camera; 
+aa::Mouse mouse;
+
+// cy::TriMesh mesh; 
+// cy::Vec3f boxMin;
+// cy::Vec3f boxMax;
+// cy::Vec3f center;
+
+// CAMERA
+// VEC3 camera_pos
+// float x_cam_angle; 
+// float y_cam_angle; 
+// float dist_cam; 
+
+// TRANSFORMATIONS
 cy::Matrix4f mvp;
 // Prspective transformation matrix
 cy::Matrix4f p;
 // Model View transformation matrix
 cy::Matrix4f v;
 cy::Matrix4f m;
-// interactive transformation matrix
+
+// USER IMPUT
+// int x_last_mouse;
+// int y_last_mouse; 
+// int mouse_button; 
+
 bool swapyz; 
 
-// Object Info
-cy::Vec3f boxMin;
-cy::Vec3f boxMax;
-cy::Vec3f center;
-
-float x_cam_angle; 
-float y_cam_angle; 
-float dist_cam; 
-
-int x_last_mouse;
-int y_last_mouse; 
-int mouse_button; 
 
 static cy::Vec3f objectPos(0.0f, 0.0f, 0.0f); 
-static cy::Vec3f upVector(0.0f, 1.0f, 0.0f);
+// static cy::Vec3f upVector(0.0f, 1.0f, 0.0f);
 
 // Amir Helpers -----------------------------
 
@@ -60,7 +71,7 @@ void display() {
     prog["swap"] = swapyz;
     prog["mvp"] = mvp;
     glBindVertexArray(teapot_vao);
-    glDrawArrays(GL_POINTS, 0, mesh.NV());
+    glDrawArrays(GL_POINTS, 0, obj.mesh.NV());
 
     // Is this how you unbind? 
     glBindVertexArray(0);
@@ -76,55 +87,33 @@ void idle() {
 void myMouse(int button, int state, int x, int y) {
     
     if (state == GLUT_DOWN) {
-        mouse_button = button; 
-        x_last_mouse = x; 
-        y_last_mouse = y; 
+        mouse.button = button; 
+        mouse.last_x= x; 
+        mouse.last_y = y; 
     }
     else {
-        mouse_button = -1; 
+        mouse.button = -1; 
     }
 }
 
 void myMouseMotion(int x, int y) {
 
-    int x_change = x - x_last_mouse; 
-    int y_change = y - y_last_mouse; 
+    int x_change = x - mouse.last_x; 
+    int y_change = y - mouse.last_y; 
 
-    if (mouse_button == GLUT_LEFT_BUTTON) {
-        y_cam_angle += x_change; 
-        x_cam_angle += -y_change;
-
-        x_cam_angle = std::max(-89.0f, std::min(89.0f, x_cam_angle));
+    if (mouse.button == GLUT_LEFT_BUTTON) {
+        camera.rotateAroundOrigin(DEG2RAD(y_change), DEG2RAD(-x_change));
     }
-    else if (mouse_button == GLUT_RIGHT_BUTTON) {
-        dist_cam += -y_change; 
+    else if (mouse.button == GLUT_RIGHT_BUTTON) {
+        camera.move(-y_change);
     }
 
-    cy::Vec3f camPos;
-
-    camPos.x = dist_cam * cos(DEG2RAD(x_cam_angle)) * sin(DEG2RAD(y_cam_angle));  
-    camPos.y = dist_cam * sin(DEG2RAD(x_cam_angle));                              
-    camPos.z = dist_cam * cos(DEG2RAD(x_cam_angle)) * cos(DEG2RAD(y_cam_angle)); 
-
-    // Calculate forward, right, and up vectors
-    cy::Vec3f forward = (objectPos - camPos).GetNormalized();
-    cy::Vec3f right = cy::Vec3f(0.0f, 1.0f, 0.0f).Cross(forward).GetNormalized();
-    cy::Vec3f newUp = forward.Cross(right);
-
-    // Camera at camPos, looking at objectPos. I think
-    v = cy::Matrix4f::View(camPos, objectPos, newUp); 
+    v = cy::Matrix4f::View(camera.pos, objectPos, camera.up); 
 
     mvp = p * v * m; 
 
-    // USEFULPRINTS
-    // printf("old-coords: %d, %d \n", x_last_mouse, y_last_mouse);
-    // printf("current-coords: %d, %d \n", x, y);
-    // printf("change-in-coords: %d, %d \n", x_change, y_change);
-    // printf("Yaw: %f, Pitch: %f, Dist: %f\n", y_cam_angle, x_cam_angle, dist_cam);
-    // printf("Camera Position: (%.2f, %.2f, %.2f)\n", camPos.x, camPos.y, camPos.z);
-
-    x_last_mouse = x; 
-    y_last_mouse = y; 
+    mouse.last_x = x; 
+    mouse.last_y = y; 
 
     glutPostRedisplay();
 }
@@ -140,52 +129,29 @@ void handleKeypress(unsigned char key, int x, int y) {
             printf("z");
             swapyz = !swapyz;
 
-            x_cam_angle = 0.0f;
-            y_cam_angle = 0.0f; 
-
-            cy::Vec3f dims = boxMax - boxMin;
-
-            // swap, boxmax, boxmin, distC_cam)
-
             if (swapyz) {
-                m = cy::Matrix4f::Translation(cy::Vec3f(-center.x, -center.z,-center.y));
+                m = cy::Matrix4f::Translation(cy::Vec3f(-obj.center.x, -obj.center.z,-obj.center.y));
             } else {
-                m = cy::Matrix4f::Translation(cy::Vec3f(-center.x, -center.y,-center.z));
+                m = cy::Matrix4f::Translation(-obj.center);
             }
 
-            dist_cam = dims.z * 3.0f;
-            cy::Vec3f camPos(0.0f, 0.0f, dist_cam);
-            v = cy::Matrix4f::View(camPos, objectPos, upVector); 
+            camera.setPosition(cy::Vec3f(0.0f, 0.0f, obj.boxDimensions.z * 3.0f));
 
-            mvp = p * v *m;
+            v = cy::Matrix4f::View(camera.pos, objectPos, camera.up); 
 
+            mvp = p * v * m;
 
             glutPostRedisplay();
     }
 }
 
-// cy::Matrix4f OrthographicMatrix(float left, float right, float bottom, float top, float near, float far) {
-//     cy::Matrix4f ortho;
-//     ortho.SetIdentity();  // Initialize to identity matrix
-//     ortho[0]  = 2.0f / (right - left);
-//     ortho[5]  = 2.0f / (top - bottom);
-//     ortho[10] = -2.0f / (far - near);
-//     ortho[12] = -(right + left) / (right - left);
-//     ortho[13] = -(top + bottom) / (top - bottom);
-//     ortho[14] = -(far + near) / (far - near);
-//     ortho[15] = 1.0f;
-//     return ortho;
-// }
-
 int main(int argc, char** argv) {
-    float width = 800.0f; 
-    float height = 600.0f; 
     //GLUT Inits 
     glutInit(&argc, argv); 
     glutInitContextVersion(4, 5);
     glutInitContextProfile(GLUT_CORE_PROFILE);
     glutInitContextFlags(GLUT_FORWARD_COMPATIBLE | GLUT_DEBUG);
-    glutInitWindowSize((int)width, (int)height);                   
+    glutInitWindowSize(800, 600);                   
     glutInitWindowPosition(100, 100);  
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     glutCreateWindow("Hello World");
@@ -201,47 +167,15 @@ int main(int argc, char** argv) {
 
     glGenVertexArrays( 1, &teapot_vao );
     glGenBuffers(1, &buffer); 
-    
-    bool success = mesh.LoadFromFileObj("../assets/objs/teapot.obj");
-    mesh.ComputeBoundingBox();
 
-    boxMin = mesh.GetBoundMin();
-    boxMax = mesh.GetBoundMax();
+    obj = aa::Object("../assets/objs/teapot.obj");
+    camera.setPosition(cy::Vec3f(0.0f, 0.0f, obj.boxDimensions.z * 3.0f));
 
-    center = (boxMin + boxMax) * 0.5f;
-
-    cy::Vec3f dims = (boxMax - boxMin);
-    float maxDim = fmax(dims.x, fmax(dims.y, dims.z));
-
-    // FOR SCALING
-    // float box_diagnol = dims.Length(); 
-    // float view_diagnol = (cy::Vec3f(-(width/2.0f), -(height/2.0f), -500.0f) - cy::Vec3f(width/2.0f, height/2.0f, 500.0f)).Length();
-
-    // USEFUL PRINTS
-    // printf("dims.x: %.5f\n", dims.x);
-    // printf("dims.y: %.5f\n", dims.y);
-    // printf("dims.z: %.5f\n", dims.z);
-    // printf("Center.x: %.5f\n", center.x);
-    // printf("Center.y: %.5f\n", center.y);
-    // printf("Center.z: %.5f\n", center.z);
-    // printf("Min: (%.5f, %.5f, %.5f)\n", box_min.x, box_min.y, box_min.z);
-    // printf("Max: (%.5f, %.5f, %.5f)\n", box_max.x, box_max.y, box_max.z);
-
-    // SCALING, WARPS CENTER
-    // m = cy::Matrix4f::Translation(cy::Vec3f(-center.x, -center.y, -center.z)) * cy::Matrix4f::Scale(2.0f / box_diagnol);
-    m = cy::Matrix4f::Translation(cy::Vec3f(-center.x, -center.y,-center.z));
-    // cy::Matrix4f v = cy::Matrix4f::Translation(cy::Vec3f(0.0f, 0.0f, -dims.z * 3.0f)); 
-    
-    x_cam_angle = 0.0f; 
-    y_cam_angle = 0.0f; 
-    dist_cam = dims.z * 3.0f; 
-    mouse_button = -1; 
-
-    cy::Vec3f camPos(0.0f, 0.0f, dist_cam);
-    v = cy::Matrix4f::View(camPos, objectPos, upVector); 
-    
+    m = cy::Matrix4f::Translation(-obj.center);
+    v = cy::Matrix4f::View(camera.pos, objectPos, camera.up); 
     p = cy::Matrix4f::Perspective(DEG2RAD(40.0f), float(800)/float(600), 0.1f, 1000.0f);
     mvp = p * v * m;
+
     swapyz = false; 
 
     prog.Bind(); 
@@ -253,7 +187,7 @@ int main(int argc, char** argv) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer); 
 
     // Load buffer data
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f)*mesh.NV(), &mesh.V(0), GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f)*obj.mesh.NV(), &obj.mesh.V(0), GL_STATIC_DRAW );
 
     // Assign pos attribute buffer
     GLuint pos = glGetAttribLocation(prog.GetID(), "pos" );
