@@ -139,17 +139,7 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(100, 100);  
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     glEnable(GL_DEPTH_TEST);
-    // glDepthFunc(GL_ALWAYS);
     glDepthFunc(GL_LEQUAL);
-    // glDepthFunc(GL_LESS);  // Use GL_LESS so closer fragments overwrite farther ones
-    // glClearDepth(1.0f);
-
-    // glDisable(GL_CULL_FACE);
-    glEnable(GL_CULL_FACE);
-    // glCullFace(GL_BACK);
-    glFrontFace(GL_CW);  
-    // glEnable(GL_POLYGON_OFFSET_FILL);
-    // glPolygonOffset(1.0, 1.0);
     glutCreateWindow("Hello World");
 
     // GLEW Initializations
@@ -157,10 +147,8 @@ int main(int argc, char** argv) {
     glewInit();
 
     glEnable(GL_DEPTH_TEST);
-    // glDepthFunc(GL_ALWAYS);
     glDepthFunc(GL_LEQUAL);
 
-    // for debugging. Professor code.
     CY_GL_REGISTER_DEBUG_CALLBACK;
 
     prog.BuildFiles( "src/shader.vert", "src/shader.frag" );
