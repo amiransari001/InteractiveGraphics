@@ -5,11 +5,11 @@ layout(location = 1) in vec3 nrm;
 
 uniform bool swap; 
 uniform mat4 mvp;
-uniform mat4 mv; 
-uniform mat3 nrm_mv;
+uniform mat4 m; 
+uniform mat3 nrm_m;
 
 out vec3 frag_nrm;
-out vec4 mv_pos; 
+out vec4 m_pos; 
 
 void main()
 {
@@ -21,10 +21,10 @@ void main()
         modified_nrm = vec3(nrm.x, nrm.z, nrm.y);
     }
 
-    frag_nrm = nrm_mv * modified_nrm; 
+    frag_nrm = nrm_m * modified_nrm; 
     // frag_nrm = modified_nrm; 
 
-    mv_pos = mv * vec4(modified_pos, 1.0);
+    m_pos = m * vec4(modified_pos, 1.0);
     
     gl_Position = mvp * vec4(modified_pos, 1.0);
 }

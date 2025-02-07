@@ -39,8 +39,8 @@ void display() {
     prog["cameraPos"] = camera.pos; 
  
     prog["mvp"] = tMatrices.mvp;
-    prog["mv"] = tMatrices.m; 
-    prog["nrm_mv"] = tMatrices.nrm_m; 
+    prog["m"] = tMatrices.m; 
+    prog["nrm_m"] = tMatrices.nrm_m; 
 
     prog["Kd"] = obj.material.Kd; 
     prog["Ks"] = obj.material.Ks; 
@@ -187,8 +187,8 @@ int main(int argc, char** argv) {
     prog["mvp"] = tMatrices.mvp; 
     // prog["mv"] = tMatrices.mv; 
     // prog["nrm_mv"] = tMatrices.nrm_mv; 
-    prog["mv"] = tMatrices.m; 
-    prog["nrm_mv"] = tMatrices.nrm_m; 
+    prog["m"] = tMatrices.m; 
+    prog["nrm_m"] = tMatrices.nrm_m; 
 
     prog["Kd"] = obj.material.Kd; 
     prog["Ks"] = obj.material.Ks; 
