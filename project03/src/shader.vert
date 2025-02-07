@@ -22,6 +22,8 @@ void main()
     }
 
     frag_nrm = nrm_mv * modified_nrm; 
+    // frag_nrm = modified_nrm; 
+
     mv_pos = mv * vec4(modified_pos, 1.0);
     
     gl_Position = mvp * vec4(modified_pos, 1.0);

@@ -33,6 +33,7 @@ namespace aa {
 
         Material () {
             Kd = cy::Vec3f(0.0f, 0.5f, 0.5f);
+            // Kd = cy::Vec3f(0.0f, 1.0f, 0.0f);
             Ks = cy::Vec3f(1.0f, 1.0f, 1.0f); 
             alpha = 30.0f; 
         }; 
@@ -70,16 +71,33 @@ namespace aa {
             boxDimensions = (boxMax - boxMin);
 
             for (unsigned int i = 0; i < mesh.NF(); i ++) {
-                for (unsigned int j = 0; j < 3; j ++) {
+                for (unsigned int j = 0; j < 3; j ++) {                    
                     unsigned int vIndex = mesh.F(i).v[j]; 
+                    unsigned int nIndex = mesh.FN(i).v[j]; 
+
                     vertices.push_back(mesh.V(vIndex));
 
                     if (mesh.HasNormals()) {
-                        normals.push_back(mesh.VN(vIndex));
+
+                        normals.push_back(mesh.VN(nIndex));
                     }
                     indices.push_back(vertices.size() - 1);
                 }
             }
+
+            // DRAWING WITH INDICES CORRECT
+            // for (unsigned int i = 0; i < mesh.NF(); i ++) {
+            //     for (unsigned int j = 0; j < 3; j ++) {
+            //         indices.push_back(mesh.F(i).v[j]);
+            //     }
+            // }
+            // for (unsigned int i = 0; i < mesh.NV(); i++)
+            // {
+            //     vertices.push_back(mesh.V(i)); 
+            //     normals.push_back(mesh.VN(i)); 
+            // }
+
+  
 
 
 
@@ -124,7 +142,23 @@ namespace aa {
             up = (rotX * rotY * cy::Vec4f(up, 0.0f)).XYZ().GetNormalized();
             right = (rotX * rotY * cy::Vec4f(right, 0.0f)).XYZ().GetNormalized();
 
+            
             pos = -normal * pos.Length();
+        }
+
+        cy::Matrix4f createView() {
+            float Tr = pos.Dot(right);
+            float Tu = pos.Dot(up);
+            float Tf = pos.Dot(normal);
+
+            cy::Matrix4f view(
+                right.x, right.y, right.z, -Tr, 
+                up.x, up.y, up.z, -Tu, 
+                -normal.x, -normal.y, -normal.z, Tf, 
+                0.0f, 0.0f, 0.0f, 1.0f
+            );
+
+            return view;
         }
 
     };
@@ -132,7 +166,7 @@ namespace aa {
     class TransformationMatrices {
     public:
         cy::Matrix4f mvp, mv, m, v, p;
-        cy::Matrix3f nrm_mv; 
+        cy::Matrix3f nrm_m, nrm_mv; 
         // cy::Matrix4f o;
         // char projectionType;
 
@@ -149,6 +183,7 @@ namespace aa {
             p = projection;
             mv = v * m; 
             mvp = p * v * m; 
+            nrm_m = m.GetSubMatrix3().GetInverse().GetTranspose(); 
             nrm_mv = mv.GetSubMatrix3().GetInverse().GetTranspose(); 
         }
         void setMV(cy::Matrix4f model, cy::Matrix4f view)  {
@@ -156,12 +191,14 @@ namespace aa {
             v = view; 
             mv = v * m; 
             mvp = p * v * m; 
+            nrm_m = m.GetSubMatrix3().GetInverse().GetTranspose(); 
             nrm_mv = mv.GetSubMatrix3().GetInverse().GetTranspose(); 
         }
         void setView(const cy::Matrix4f view) {
             v = view; 
             mv = v * m; 
             mvp = p * v * m; 
+            nrm_m = m.GetSubMatrix3().GetInverse().GetTranspose(); 
             nrm_mv = mv.GetSubMatrix3().GetInverse().GetTranspose(); 
         }
 

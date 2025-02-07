@@ -31,15 +31,16 @@ static cy::Vec3f objectPos(0.0f, 0.0f, 0.0f);
 
 // OpenGL -----------------------------------
 void display() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
-
+    
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     prog.Bind(); 
+    
     prog["swap"] = swapyz;
-    prog["mvp"] = tMatrices.mvp;
-    prog["mv"] = tMatrices.mv; 
-    prog["nrm_mv"] = tMatrices.nrm_mv; 
-
     prog["cameraPos"] = camera.pos; 
+ 
+    prog["mvp"] = tMatrices.mvp;
+    prog["mv"] = tMatrices.m; 
+    prog["nrm_mv"] = tMatrices.nrm_m; 
 
     prog["Kd"] = obj.material.Kd; 
     prog["Ks"] = obj.material.Ks; 
@@ -50,7 +51,12 @@ void display() {
     prog["lightIntensity"] = light.intensity; 
 
     glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, obj.indices.size(), GL_UNSIGNED_INT, 0);
+
+    // IMPORTANT DO NOT DELETE
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Enable wireframe mode
+    glDrawArrays(GL_TRIANGLES, 0, obj.vertices.size());
+    // glDrawElements(GL_TRIANGLES, obj.indices.size(), GL_UNSIGNED_INT, 0);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to solid rendering mode
 
     // Unbind VA0 and program
     glBindVertexArray(0);
@@ -88,6 +94,7 @@ void myMouseMotion(int x, int y) {
     }
 
     cy::Matrix4f view = cy::Matrix4f::View(camera.pos, objectPos, camera.up); 
+    // cy::Matrix4f view = camera.createView(); 
     tMatrices.setView(view); 
 
     mouse.last_x = x; 
@@ -132,12 +139,26 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(100, 100);  
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    // glDepthFunc(GL_ALWAYS);
+    glDepthFunc(GL_LEQUAL);
+    // glDepthFunc(GL_LESS);  // Use GL_LESS so closer fragments overwrite farther ones
+    // glClearDepth(1.0f);
+
+    // glDisable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
+    // glCullFace(GL_BACK);
+    glFrontFace(GL_CW);  
+    // glEnable(GL_POLYGON_OFFSET_FILL);
+    // glPolygonOffset(1.0, 1.0);
     glutCreateWindow("Hello World");
 
     // GLEW Initializations
     glewExperimental = GL_TRUE;
     glewInit();
+
+    glEnable(GL_DEPTH_TEST);
+    // glDepthFunc(GL_ALWAYS);
+    glDepthFunc(GL_LEQUAL);
 
     // for debugging. Professor code.
     CY_GL_REGISTER_DEBUG_CALLBACK;
@@ -154,19 +175,20 @@ int main(int argc, char** argv) {
 
     cy::Matrix4f model = cy::Matrix4f::Translation(-obj.center);
     cy::Matrix4f view = cy::Matrix4f::View(camera.pos, objectPos, camera.up); 
-    cy::Matrix4f projection = cy::Matrix4f::Perspective(DEG2RAD(40.0f), float(800)/float(600), 0.1f, 1000.0f);
+    cy::Matrix4f projection = cy::Matrix4f::Perspective(DEG2RAD(45.0f), float(800)/float(600), 0.1f, 1000.0f);
     tMatrices.setMVP(model, view, projection);
 
     swapyz = false; 
 
     prog.Bind(); 
 
-    prog["swap"] = swapyz; 
-    prog["mvp"] = tMatrices.mvp; 
-    prog["mv"] = tMatrices.mv; 
-    prog["nrm_mv"] = tMatrices.nrm_mv; 
-
+    prog["swap"] = swapyz;
     prog["cameraPos"] = camera.pos; 
+    prog["mvp"] = tMatrices.mvp; 
+    // prog["mv"] = tMatrices.mv; 
+    // prog["nrm_mv"] = tMatrices.nrm_mv; 
+    prog["mv"] = tMatrices.m; 
+    prog["nrm_mv"] = tMatrices.nrm_m; 
 
     prog["Kd"] = obj.material.Kd; 
     prog["Ks"] = obj.material.Ks; 
@@ -216,6 +238,7 @@ int main(int argc, char** argv) {
 
     // OPENGL Inits
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
     // Main Loop
     glutMainLoop(); 
