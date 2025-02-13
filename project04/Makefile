@@ -33,7 +33,7 @@ $(TARGET): $(OBJECTS)
 
 # Run the program with correct GLEW library path
 run: $(TARGET)
-	LD_LIBRARY_PATH=$(GLEW_PATH)/lib:$$LD_LIBRARY_PATH ./$(TARGET)
+	LD_LIBRARY_PATH=$(GLEW_PATH)/lib:$$LD_LIBRARY_PATH ./$(TARGET)  ../assets/objs/nyra.obj
 
 # Clean generated files
 clean:

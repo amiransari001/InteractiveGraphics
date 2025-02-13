@@ -135,6 +135,30 @@ void handleKeypress(unsigned char key, int x, int y) {
 }
 
 int main(int argc, char** argv) {
+    if (argc < 2) {  // Ensure an argument is provided
+        std::cerr << "Usage: " << argv[0] << " <path_to_obj_file>" << std::endl;
+        return -1;
+    }
+
+    std::string objFilePath = argv[1];  // Get OBJ file path from the command line
+    std::string texturePath = (argc > 2) ? argv[2] : "brick.png";
+    std::cout << "Loading OBJ file: " << objFilePath << std::endl;
+
+
+    obj = aa::Object(objFilePath);    
+    if (obj.vertices.empty()) {
+        std::cerr << "Failed to load OBJ file: " << objFilePath << std::endl;
+        return -1;
+    }
+
+    if (!texture.loadTexture(texturePath.c_str())) {
+        std::cerr << "Failed to load texture: " << texturePath << std::endl;
+        return -1;
+    }
+
+    texture.loadTexture("../assets/txts/brick.png");
+
+
     //GLUT Inits 
     glutInit(&argc, argv); 
     glutInitContextVersion(4, 5);
@@ -166,8 +190,8 @@ int main(int argc, char** argv) {
     tex.Initialize();
 
 
-    obj = aa::Object("../assets/objs/teapot.obj");
-    texture.loadTexture("../assets/txts/brick.png");
+    // obj = aa::Object("../assets/objs/teapot.obj");
+    // texture.loadTexture("../assets/txts/brick.png");
 
 
 
