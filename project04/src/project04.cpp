@@ -19,12 +19,16 @@ GLuint vao;
 GLuint ebo; 
 GLuint vertex_buffer; 
 GLuint normal_buffer; 
+GLuint tex_coord_buffer; 
+cyGLTexture2D tex;
+
 
 aa::Object obj; 
 aa::Camera camera; 
 aa::Mouse mouse;
 aa::TransformationMatrices tMatrices; 
 aa::Light light;
+aa::Texture texture; 
 
 bool swapyz; 
 static cy::Vec3f objectPos(0.0f, 0.0f, 0.0f); 
@@ -158,8 +162,15 @@ int main(int argc, char** argv) {
     glGenBuffers(1, &ebo); 
     glGenBuffers(1, &vertex_buffer); 
     glGenBuffers(1, &normal_buffer); 
+    glGenBuffers(1, &tex_coord_buffer); 
+    tex.Initialize();
+
 
     obj = aa::Object("../assets/objs/teapot.obj");
+    texture.loadTexture("../assets/txts/brick.png");
+
+
+
     camera.setPosition(cy::Vec3f(0.0f, 0.0f, obj.boxDimensions.z * 3.0f));
 
     cy::Matrix4f model = cy::Matrix4f::Translation(-obj.center);
@@ -174,8 +185,6 @@ int main(int argc, char** argv) {
     prog["swap"] = swapyz;
     prog["cameraPos"] = camera.pos; 
     prog["mvp"] = tMatrices.mvp; 
-    // prog["mv"] = tMatrices.mv; 
-    // prog["nrm_mv"] = tMatrices.nrm_mv; 
     prog["m"] = tMatrices.m; 
     prog["nrm_m"] = tMatrices.nrm_m; 
 
@@ -212,7 +221,21 @@ int main(int argc, char** argv) {
     }
     glEnableVertexAttribArray( nrm );
     glVertexAttribPointer(nrm, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0 );
+
+    glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer); 
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f)*obj.textureCoords.size(), obj.textureCoords.data(), GL_STATIC_DRAW );
+    
+    GLuint tCoord = glGetAttribLocation(prog.GetID(), "tCoord" );
+    if (tCoord == -1) {
+        std::cerr << "ERROR: Attribute 'tCoord' not found in shader!" << std::endl;
+    }
+    glEnableVertexAttribArray( tCoord );
+    glVertexAttribPointer(tCoord, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0 );
  
+    tex.SetImage(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, texture.data.data(), texture.width, texture.height );
+    tex.BuildMipmaps();
+    tex.Bind( 0 );
+    prog["tex"] = 0;
 
     //Unbind VAO after setup. IDK, maybe good practice.
     glBindVertexArray(0);

@@ -2,6 +2,7 @@
 
 layout(location = 0) in vec3 pos; 
 layout(location = 1) in vec3 nrm;
+layout(location = 2) in vec3 tCoord;
 
 uniform bool swap; 
 uniform mat4 mvp;
@@ -10,6 +11,7 @@ uniform mat3 nrm_m;
 
 out vec3 frag_nrm;
 out vec4 m_pos; 
+out vec2 texCoord;
 
 void main()
 {
@@ -25,6 +27,7 @@ void main()
     // frag_nrm = modified_nrm; 
 
     m_pos = m * vec4(modified_pos, 1.0);
+    texCoord = vec2(tCoord.x, tCoord.y);
     
     gl_Position = mvp * vec4(modified_pos, 1.0);
 }

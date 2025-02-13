@@ -7,7 +7,30 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include "lodepng.h"
+
 namespace aa {
+
+
+    class Texture {
+    public: 
+        unsigned width; 
+        unsigned height; 
+        std::vector<unsigned char> data; 
+
+        bool loadTexture(const char* filename) {
+            unsigned error = lodepng::decode(data, width, height, filename);
+                if (error) {
+                    std::cerr << "LodePNG Error: " << lodepng_error_text(error) << std::endl;
+                    return false;
+                }
+
+                // Successfully loaded texture data
+                std::cout << "Loaded PNG: " << filename << " (" << width << "x" << height << ")\n";
+                return true;
+        }
+
+    };
 
     class Light {
     public: 
@@ -54,6 +77,7 @@ namespace aa {
         cy::Vec3f boxDimensions;
         std::vector<cy::Vec3f> vertices; 
         std::vector<cy::Vec3f> normals; 
+        std::vector<cy::Vec3f> textureCoords; 
         std::vector<unsigned int> indices; 
         aa::Material material; 
 
@@ -74,8 +98,10 @@ namespace aa {
                 for (unsigned int j = 0; j < 3; j ++) {                    
                     unsigned int vIndex = mesh.F(i).v[j]; 
                     unsigned int nIndex = mesh.FN(i).v[j]; 
+                    unsigned int tIndex = mesh.FT(i).v[j]; 
 
                     vertices.push_back(mesh.V(vIndex));
+                    textureCoords.push_back(mesh.VT(tIndex));
 
                     if (mesh.HasNormals()) {
 
