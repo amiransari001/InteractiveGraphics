@@ -156,7 +156,6 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    texture.loadTexture("../assets/txts/brick.png");
 
 
     //GLUT Inits 
@@ -192,7 +191,6 @@ int main(int argc, char** argv) {
 
     // obj = aa::Object("../assets/objs/teapot.obj");
     // texture.loadTexture("../assets/txts/brick.png");
-
 
 
     camera.setPosition(cy::Vec3f(0.0f, 0.0f, obj.boxDimensions.z * 3.0f));
