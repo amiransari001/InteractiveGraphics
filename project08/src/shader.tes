@@ -1,0 +1,87 @@
+#version 450 core
+
+layout(quads, equal_spacing, ccw) in;
+
+uniform sampler2D normal_tex;
+uniform sampler2D displacement_tex;
+
+uniform float disp_scale;
+uniform bool swap;
+
+uniform mat4 mvp;
+uniform mat4 m;
+uniform mat3 nrm_m;
+
+in vec2 tcs_texCoord[]; // From TCS
+
+out vec2 tes_texCoord;
+out vec3 tes_frag_nrm;
+out vec3 tes_frag_tangent;
+out vec3 tes_frag_bitangent;
+out vec4 tes_m_pos;
+
+vec3 interp(vec3 p00, vec3 p10, vec3 p11, vec3 p01, vec2 uv) {
+    vec3 pa = mix(p00, p10, uv.x);
+    vec3 pb = mix(p01, p11, uv.x);
+    return mix(pa, pb, uv.y);
+}
+
+vec2 interp_tex(vec2 t00, vec2 t10, vec2 t11, vec2 t01, vec2 uv) {
+    vec2 ta = mix(t00, t10, uv.x);
+    vec2 tb = mix(t01, t11, uv.x);
+    return mix(ta, tb, uv.y);
+}
+
+vec3 displacedPosition(vec2 uv) {
+    vec3 p00 = gl_in[0].gl_Position.xyz;
+    vec3 p10 = gl_in[1].gl_Position.xyz;
+    vec3 p11 = gl_in[2].gl_Position.xyz;
+    vec3 p01 = gl_in[3].gl_Position.xyz;
+
+    vec3 basePos = interp(p00, p10, p11, p01, uv);
+    vec2 uv_interp = interp_tex(tcs_texCoord[0], tcs_texCoord[1], tcs_texCoord[2], tcs_texCoord[3], uv);
+    
+    float disp = texture(displacement_tex, uv_interp).r;
+    //vec3 normal = texture(normal_tex, uv_interp).rgb;
+    //normal = normalize(normal * 2 - 1);
+
+    vec3 normal = vec3(0.0, 0.0, 1.0);
+
+    return basePos + disp * disp_scale * normal;
+}
+
+void main() {
+    vec2 uv = gl_TessCoord.xy;
+
+    tes_texCoord = interp_tex(
+        tcs_texCoord[0], tcs_texCoord[1],
+        tcs_texCoord[2], tcs_texCoord[3],
+        uv
+    );
+
+    vec3 pos = displacedPosition(uv);
+
+    float eps = 0.1;
+
+    vec3 posU = displacedPosition(uv + vec2(eps, 0.0));
+    vec3 posV = displacedPosition(uv + vec2(0.0, eps));
+
+    vec3 tangent = normalize(posU - pos);
+    vec3 bitangent = normalize(posV - pos);
+
+    vec3 nrm = texture(normal_tex, tes_texCoord).rgb;
+    nrm = normalize(nrm * 2.0 - 1.0);
+
+    if (swap) {
+        pos = vec3(pos.x, pos.z, pos.y);
+        nrm = vec3(nrm.x, nrm.z, nrm.y);
+        tangent = vec3(tangent.x, tangent.z, tangent.y);
+        bitangent = vec3(bitangent.x, bitangent.z, bitangent.y);
+    }
+
+    tes_frag_nrm = normalize(nrm_m * nrm);
+    tes_frag_tangent = normalize(nrm_m * tangent);
+    tes_frag_bitangent = normalize(nrm_m * bitangent);
+    tes_m_pos = m * vec4(pos, 1.0);
+    gl_Position = mvp * vec4(pos, 1.0);
+}

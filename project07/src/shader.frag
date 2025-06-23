@@ -37,7 +37,7 @@ void main ()
 
     float attenuation = 1.0 / (1.0 + att_linear * lightDist + att_quadratic * (lightDist * lightDist)); 
 
-    vec3 clr; 
+    vec3 clr = vec3(0.0, 0.0, 0.0); 
     if (theta > cos_cuttoff) {
         // SHADE
         vec3 nrm = normalize(frag_nrm); 
@@ -48,20 +48,26 @@ void main ()
 
         vec3 diffuse = lightIntensity * geom * Kd;
         vec3 specular = lightIntensity *  Ks * pow(phi, alpha);
-        vec3 ambient = 0.25 * Kd; 
+        //vec3 ambient = 0.25 * Kd; 
 
-        clr = attenuation * (diffuse + specular + ambient); 
+        // clr = attenuation * (diffuse + specular + ambient); 
+        clr = attenuation * (diffuse + specular); 
         // clr = diffuse + specular + ambient; 
         //clr = lightIntensity * (geom * Kd + Ks * pow(phi, alpha)) + 0.25 * Kd;
-    } else {
+    } 
+    //else {
         // JUST AMBIENT
-        clr = attenuation * 0.25 * Kd;
-    }
+        //clr = attenuation * 0.25 * Kd;
+    //}
 
+    vec3 ambient = attenuation * 0.25 * Kd; 
+    float nrmDotLight = dot(frag_nrm, lightDir);
+    //nrmDotLight = clamp(nrmDotLight, 0.0, 1.0);
+    float bias = max(0.000639 * (1.0 - nrmDotLight), 0.00048);
     color = vec4(clr, 1.0); 
-    vec4 biased_lightView_Position = vec4(lightView_Position.x, lightView_Position.y ,lightView_Position.z - 0.0005, lightView_Position.w);
+    vec4 biased_lightView_Position = vec4(lightView_Position.x, lightView_Position.y, lightView_Position.z - bias, lightView_Position.w);
     color *= textureProj( shadow, biased_lightView_Position );
-
+    color += vec4(ambient, 1.0); 
 
 
 

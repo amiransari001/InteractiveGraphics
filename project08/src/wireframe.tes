@@ -1,0 +1,51 @@
+#version 450 core
+
+layout(quads, equal_spacing, ccw) in;
+uniform sampler2D normal_tex; 
+uniform sampler2D displacement_tex; 
+
+uniform float disp_scale; 
+uniform mat4 mvp;
+uniform bool swap; 
+
+in vec2 tcs_texCoord[]; 
+
+
+void main() {
+    // Get control points (assumed ordered like: bottom-left, bottom-right, top-right, top-left)
+    vec3 p00 = gl_in[0].gl_Position.xyz;
+    vec3 p10 = gl_in[1].gl_Position.xyz;
+    vec3 p11 = gl_in[2].gl_Position.xyz;
+    vec3 p01 = gl_in[3].gl_Position.xyz;
+
+    vec2 uv = gl_TessCoord.xy;
+
+    // Bilinear interpolation
+    vec3 posA = mix(p00, p10, uv.x); // bottom edge → right edge
+    vec3 posB = mix(p01, p11, uv.x); // top edge → right edge
+    vec3 pos  = mix(posA, posB, uv.y);
+
+    vec2 t00 = tcs_texCoord[0];
+    vec2 t10 = tcs_texCoord[1];
+    vec2 t11 = tcs_texCoord[2];
+    vec2 t01 = tcs_texCoord[3];
+
+    vec2 tA = mix(t00, t10, uv.x);
+    vec2 tB = mix(t01, t11, uv.x);
+    vec2 tes_texCoord = mix(tA, tB, uv.y);
+
+
+    vec3 nrm = texture(normal_tex, tes_texCoord).rgb;
+    nrm = normalize(nrm * 2.0 - 1.0);
+    vec3 modified_nrm = nrm; 
+    
+    float displacement = texture(displacement_tex, tes_texCoord).r; 
+    pos = pos + vec3(0.0, 0.0, 1.0) * displacement * disp_scale;
+    pos = pos + vec3(0.0, 0.0, 0.005);
+
+    if (swap) {
+        pos = vec3(pos.x, pos.z, pos.y);
+    }
+
+    gl_Position = mvp * vec4(pos, 1.0);
+}

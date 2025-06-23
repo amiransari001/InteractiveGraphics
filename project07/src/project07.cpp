@@ -37,8 +37,9 @@ aa::Camera light_camera;
 aa::Mouse mouse;
 aa::TransformationMatrices objectTransformations; 
 aa::TransformationMatrices planeTransformations; 
-// aa::TransformationMatrices shadowTransformations; 
 aa::Light light;
+float a_down; 
+float d_down; 
 
 bool swapyz; 
 static cy::Vec3f objectPos(0.0f, 0.0f, 0.0f); 
@@ -51,8 +52,10 @@ void display() {
     shadowMap.Bind();
     glClear( GL_DEPTH_BUFFER_BIT );
     shadow_prog["swap"] = swapyz; 
-    
+    cy::Matrix4f light_camera_projection = cy::Matrix4f::Perspective(DEG2RAD(45.0f), float(4096)/float(4096), 0.1f, 100.0f);
+
     aa::TransformationMatrices shadow_obj = objectTransformations; 
+    shadow_obj.setProjection(light_camera_projection);
     shadow_obj.setView(cy::Matrix4f::View(light_camera.pos, objectPos, light_camera.up));
     shadow_prog["mlp"] = shadow_obj.mvp; 
 
@@ -61,6 +64,7 @@ void display() {
     glBindVertexArray(0);
 
     aa::TransformationMatrices shadow_plane = planeTransformations; 
+    shadow_plane.setProjection(light_camera_projection);
     shadow_plane.setView(cy::Matrix4f::View(light_camera.pos, objectPos, light_camera.up));
     shadow_prog["mlp"] = shadow_plane.mvp; 
 
@@ -167,39 +171,104 @@ void myMouseMotion(int x, int y) {
     glutPostRedisplay();
 }
 
-void handleKeypress(unsigned char key, int x, int y) {
-    switch (key) {
-        case 27: 
-            glDeleteVertexArrays(1, &obj_vao);
-            glDeleteBuffers(1, &vertex_buffer);
-            glDeleteBuffers(1, &normal_buffer);
-            exit(0); 
-            break;
-        case 'z':
-            swapyz = !swapyz;
-            cy::Matrix4f model; 
-            cy::Matrix4f plane_model;
-
-            float scale_factor = (obj.boxMax - obj.boxMin).Length();
-            cy::Matrix4f::Scale(2.0f / scale_factor);
-            if (swapyz) {
-                cy::Vec3f plane_translation(0.0f, -(obj.center.z - obj.boxMin.z), 0.0f);
-                plane_model = cy::Matrix4f::Scale(2.0f / scale_factor) * cy::Matrix4f::Translation(plane_translation);
-                model = cy::Matrix4f::Scale(2.0f / scale_factor) *  cy::Matrix4f::Translation(cy::Vec3f(-obj.center.x, -obj.center.z,-obj.center.y));
-            } else {
-                cy::Vec3f plane_translation(0.0f,0.0f,  -(obj.center.z - obj.boxMin.z));
-                plane_model = cy::Matrix4f::Scale(2.0f / scale_factor) * cy::Matrix4f::Translation(plane_translation);
-                model = cy::Matrix4f::Scale(2.0f / scale_factor) * cy::Matrix4f::Translation(-obj.center);
-            }
-
-            camera.setPosition(cy::Vec3f(0.0f, 0.0f, 2.0f));
-            cy::Matrix4f view = cy::Matrix4f::View(camera.pos, objectPos, camera.up); 
-            objectTransformations.setMV(model, view); 
-            planeTransformations.setMV(plane_model, view);
-
-            glutPostRedisplay();
+void keyboardDown(unsigned char key, int x, int y) {
+    if (key == 27) {
+        glDeleteVertexArrays(1, &obj_vao);
+        glDeleteBuffers(1, &vertex_buffer);
+        glDeleteBuffers(1, &normal_buffer);
+        exit(0); 
     }
+    if (key == 'z') {
+        swapyz = !swapyz;
+        cy::Matrix4f model; 
+        cy::Matrix4f plane_model;
+
+        float scale_factor = (obj.boxMax - obj.boxMin).Length();
+        cy::Matrix4f::Scale(2.0f / scale_factor);
+        if (swapyz) {
+            cy::Vec3f plane_translation(0.0f, -(obj.center.z - obj.boxMin.z), 0.0f);
+            plane_model = cy::Matrix4f::Scale(2.0f / scale_factor) * cy::Matrix4f::Translation(plane_translation);
+            model = cy::Matrix4f::Scale(2.0f / scale_factor) *  cy::Matrix4f::Translation(cy::Vec3f(-obj.center.x, -obj.center.z,-obj.center.y));
+        } else {
+            cy::Vec3f plane_translation(0.0f,0.0f,  -(obj.center.z - obj.boxMin.z));
+            plane_model = cy::Matrix4f::Scale(2.0f / scale_factor) * cy::Matrix4f::Translation(plane_translation);
+            model = cy::Matrix4f::Scale(2.0f / scale_factor) * cy::Matrix4f::Translation(-obj.center);
+        }
+
+        light_camera.setPosition(cy::Vec3f(5.0f, 5.0f, 5.0f));
+        light.setPosition(light_camera.pos); 
+        camera.setPosition(cy::Vec3f(0.0f, 0.0f, 2.0f));
+        cy::Matrix4f view = cy::Matrix4f::View(camera.pos, objectPos, camera.up); 
+        objectTransformations.setMV(model, view); 
+        planeTransformations.setMV(plane_model, view);
+
+        glutPostRedisplay();
+    }
+    if (key == 'a')
+        a_down = true;
+    if (key == 'd')
+        d_down = true;
 }
+
+// GLUT callback for key release.
+void keyboardUp(unsigned char key, int x, int y) {
+    if (key == 'a')
+        a_down = false;
+    if (key == 'd')
+        d_down = false;
+}
+
+void idle() {
+    const float rotationSpeed = 0.01f; // Adjust rotation speed as desired
+    cy::Vec3f axis(0.0f, 0.0f, 1.0f); 
+    if (swapyz)
+        axis =  cy::Vec3f(0.0f, 1.0f, 0.0f); 
+    if (a_down) {
+        light_camera.fixedHorizontalOriginRotation(-rotationSpeed, axis);
+        light.pos = light_camera.pos;
+        light.dir = light_camera.normal;
+    }
+    if (d_down) {
+        light_camera.fixedHorizontalOriginRotation(rotationSpeed, axis);
+        light.setPosition(light_camera.pos);
+    }
+    
+    glutPostRedisplay();
+}
+
+// void handleKeypress(unsigned char key, int x, int y) {
+//     switch (key) {
+//         case 27: 
+//             glDeleteVertexArrays(1, &obj_vao);
+//             glDeleteBuffers(1, &vertex_buffer);
+//             glDeleteBuffers(1, &normal_buffer);
+//             exit(0); 
+//             break;
+//         case 'z':
+//             swapyz = !swapyz;
+//             cy::Matrix4f model; 
+//             cy::Matrix4f plane_model;
+
+//             float scale_factor = (obj.boxMax - obj.boxMin).Length();
+//             cy::Matrix4f::Scale(2.0f / scale_factor);
+//             if (swapyz) {
+//                 cy::Vec3f plane_translation(0.0f, -(obj.center.z - obj.boxMin.z), 0.0f);
+//                 plane_model = cy::Matrix4f::Scale(2.0f / scale_factor) * cy::Matrix4f::Translation(plane_translation);
+//                 model = cy::Matrix4f::Scale(2.0f / scale_factor) *  cy::Matrix4f::Translation(cy::Vec3f(-obj.center.x, -obj.center.z,-obj.center.y));
+//             } else {
+//                 cy::Vec3f plane_translation(0.0f,0.0f,  -(obj.center.z - obj.boxMin.z));
+//                 plane_model = cy::Matrix4f::Scale(2.0f / scale_factor) * cy::Matrix4f::Translation(plane_translation);
+//                 model = cy::Matrix4f::Scale(2.0f / scale_factor) * cy::Matrix4f::Translation(-obj.center);
+//             }
+
+//             camera.setPosition(cy::Vec3f(0.0f, 0.0f, 2.0f));
+//             cy::Matrix4f view = cy::Matrix4f::View(camera.pos, objectPos, camera.up); 
+//             objectTransformations.setMV(model, view); 
+//             planeTransformations.setMV(plane_model, view);
+
+//             glutPostRedisplay();
+//     }
+// }
 
 int main(int argc, char** argv) {
     if (argc < 2) {  // Ensure an argument is provided
@@ -341,6 +410,7 @@ int main(int argc, char** argv) {
 
     // CREATE LIGHT TRANSFORMATIONS
     light_camera.setPosition(cy::Vec3f(light.pos.x, light.pos.y, light.pos.z));
+    // light_camera.setPosition(cy::Vec3f(light.pos.x, light.pos.z, light.pos.y));
     shadow_prog.Bind(); 
 
     glBindVertexArray(shadow_obj_vao);
@@ -370,8 +440,8 @@ int main(int argc, char** argv) {
 
     shadowMap.Initialize(
         true, // depth comparison texture
-        2048, // width
-        2048 // height
+        4096, // width
+        4096 // height
     );
     shadowMap.SetTextureFilteringMode( GL_LINEAR, GL_LINEAR );
 
@@ -380,9 +450,13 @@ int main(int argc, char** argv) {
 
     // Function Assignment
     glutDisplayFunc(display);              
-    glutKeyboardFunc(handleKeypress);
+    // glutKeyboardFunc(handleKeypress);
     glutMouseFunc(myMouse);
     glutMotionFunc(myMouseMotion); 
+
+    glutKeyboardFunc(keyboardDown);
+    glutKeyboardUpFunc(keyboardUp);
+    glutIdleFunc(idle);
 
     // OPENGL Inits
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

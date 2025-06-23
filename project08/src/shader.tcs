@@ -1,0 +1,25 @@
+#version 450 core
+
+layout(vertices = 4) out;
+
+uniform float tess_scale; 
+
+in vec2 vs_texCoord[];
+out vec2 tcs_texCoord[];
+
+void main() {
+    gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+    tcs_texCoord[gl_InvocationID] = vs_texCoord[gl_InvocationID];
+
+    if (gl_InvocationID == 0) {
+
+        float tess_param = pow(2.0, tess_scale);
+
+        gl_TessLevelOuter[0] = tess_param;
+        gl_TessLevelOuter[1] = tess_param;
+        gl_TessLevelOuter[2] = tess_param;
+        gl_TessLevelOuter[3] = tess_param;
+        gl_TessLevelInner[0] = tess_param;
+        gl_TessLevelInner[1] = tess_param;
+    }
+}
